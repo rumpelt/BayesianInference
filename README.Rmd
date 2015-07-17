@@ -1,0 +1,76 @@
+---
+title: "BayesianInference"
+author: "Ashwani Rao"
+date: "July 12, 2015"
+output: pdf_document
+---
+
+Purpose is to play with Bayesian Inference mechanism with flip of coins.
+
+Following is R code to generate sequence of flip of coins with a biased coin.
+```{r}
+flip_coins <- function(n, bias) {
+  nums <- runif(n)
+  sapply(nums, function(val) if (val > bias) FALSE else TRUE)
+}
+flip_coins(10, 0.5) # Flip 10 coins with a fair coin
+flip_coins(10, 0.3) # Flip 10 coins with probability of head 0.3
+
+```
+lik<- function(bias, flips) {
+  total_head <- sum(flips) 
+  total_obv <- length(flips)
+  n_choose_k <- choose(total_obv, total_head)
+  n_choose_k * (bias ^ total_head) * ((1 - bias) ^ (total_obv - total_head))
+}
+
+
+# posterior function
+post <- function(likelihood, priors) {
+  likelihood * priors
+}
+# normalized posterior function
+  post_normalize <- function(flips, hypothesis_space) {
+    likelihoods <- sapply(hypothesis_space$hypothesis, lik, flips=flips)
+    posteriors <- likelihoods * hypothesis_space$priors
+    sum_posterior <- sum(posteriors)
+    posteriors / sum_posterior
+}
+```{r}
+library(ggplot2)
+ggplot(df, aes(x=x, y=y)) + geom_point(size=2)
+```
+
+
+We will generate data likelihood at various hypothesis of flip probability. We will plot these likelihoods to find at what hypothesis the max out.
+```{r}
+# following function will generate  a dataframe with three columns. Firt column is the actualy bias of the coin used to flip 10 times.
+# Second columns is our hypothesis probability of the bias
+# Third Columns is the likelihood of the data based on the hypothesis probability
+gen_lik <- function() {
+  flip_prob <- NULL
+  hypo_prob <- NULL
+  likelihood <- NULL
+  for(flip_bias in seq(0,1, by=0.1)) {
+    flips <- flip_coins(10, flip_bias)
+    for (prob in hypo_space$hypothesis) {
+      flip_prob <- c(flip_prob, as.character(flip_bias))
+      hypo_prob <- c(hypo_prob, prob)
+      likelihood <- c(likelihood, lik(prob, flips))
+    }
+  }
+  data_frame <- data.frame(flip_prob=flip_prob, hypo_prob=hypo_prob, likelihood=likelihood)
+  data_frame
+}
+# This function plot likelihood of data for each of the hypothesis probability
+# for 10 flips of coins (flipped according to flip prob for that experiment).
+# In the plot likelhood should max when coin flipped probability is equal to hypothesis probability
+plot_likelihoods<- function() {
+  df <- gen_lik()
+  # select a subset of data
+  selected_probs <- sample(df$flip_prob, 5)
+  df <- df[df$flip_prob %in% selected_probs, ]
+  p <- ggplot(data=df, aes(x=hypo_prob, y=likelihood, colour=flip_prob)) + geom_point(shape=1) + facet_grid(. ~ flip_prob)
+  p
+}
+```
